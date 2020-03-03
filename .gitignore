@@ -1,2 +1,4 @@
 # Project exclude paths
 /target/
+/cataline.base_IS_UNDEFINED/
+/.idea/
