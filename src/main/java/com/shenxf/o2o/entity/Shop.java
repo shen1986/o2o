@@ -6,7 +6,6 @@ import java.util.List;
 public class Shop {
 
 	private Long shopId;
-	private Long ownerId;
 	private Long shopCategoryId;
 	private String shopName;
 	private String shopDesc;
@@ -25,6 +24,7 @@ public class Shop {
 	private Area area;
 	private ShopCategory shopCategory;
 	private ShopCategory parentCategory;
+	private PersonInfo ownerId;
 
 	public Long getShopId() {
 		return shopId;
@@ -34,11 +34,11 @@ public class Shop {
 		this.shopId = shopId;
 	}
 
-	public Long getOwnerId() {
+	public PersonInfo getOwner() {
 		return ownerId;
 	}
 
-	public void setOwnerId(Long ownerId) {
+	public void setOwner(PersonInfo ownerId) {
 		this.ownerId = ownerId;
 	}
 
