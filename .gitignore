@@ -2,3 +2,4 @@
 /target/
 /cataline.base_IS_UNDEFINED/
 /.idea/
+*.log
