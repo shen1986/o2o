@@ -1,4 +1,4 @@
-package com.shenxf.o2o.web;
+package com.shenxf.o2o.web.superadmin;
 
 import java.util.ArrayList;
 import java.util.HashMap;
