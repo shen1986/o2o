@@ -8,7 +8,12 @@
 - [图片压缩以及水印处理](https://mvnrepository.com/artifact/net.coobird/thumbnailator)
 
 ## MUI mobile
-- [MUI mobile]()
+- [SUI mobile](https://sui.ctolog.com/)
 
 ## jackson-databind
 - JSON 转换用
+
+## 第三方验证码图片
+- kaptcha
+
+## 读写分离
