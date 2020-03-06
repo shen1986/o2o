@@ -44,5 +44,16 @@
         * `show master status\G;`
      + 这个项目的第一个坑，主从服务的的mysql版本不一样，导致从数据库删除重新安装。
      主服务器的是docker的mysql，进入虚拟机改配置无法vim，安装vim后死机。重装加重新配置，耗时半天。
+     + 连带笔记
+     + 授予某个IP远程链接权限
+     grant all PRIVILEGES on *.* to root@'远程主机ip'  identified by 'root';
+     
+     + docker 宿主与虚拟机相互复制
+     docker cp /root/mysql/conf/ 03f56c464917:/etc/mysql
+     docker cp /etc/mysql/conf/mysql.conf.d/mysqld.cnf b7c958c7c387:/etc/mysql/mysql.conf.d/ 
+     
+     + 修改数据库密码
+     update user set password=password('xxxx') where user = 'root';
+     
 - 代码层面的读写分离实现
 
