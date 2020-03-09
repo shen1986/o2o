@@ -56,4 +56,136 @@
      update user set password=password('xxxx') where user = 'root';
      
 - 代码层面的读写分离实现
+    + 在mybatis里面追加拦截器配置
+    ```xml
+    <plugins>
+        <plugin interceptor="com.shenxf.o2o.dao.split.DynamicDataSourceInterceptor"></plugin>
+    </plugins>
+    ```
+    + 编写拦截器
+    ```java
+    @Intercepts({@Signature(type = Executor.class, method="update", args = {MappedStatement.class, Object.class}),
+        @Signature(type = Executor.class, method="query", args = {MappedStatement.class, Object.class,
+                RowBounds.class, ResultHandler.class})})
+    public class DynamicDataSourceInterceptor implements Interceptor {
+        private static Logger logger = LoggerFactory.getLogger(DynamicDataSourceInterceptor.class);
+        private static final String REGEX = ".*insert\\u0020.*|.*delete\\u0020.*|.*update\\u0020.*";
+        
+        @Override
+        public Object intercept(Invocation invocation) throws Throwable {
+            boolean synchronizationActive = TransactionSynchronizationManager.isActualTransactionActive();
+            Object[] objects = invocation.getArgs();
+            MappedStatement ms = (MappedStatement) objects[0];
+            String lookupKey = DynamicDataSourceHolder.DB_MASTER;;
+    
+            if (!synchronizationActive) {
+    
+                // 读方法
+                if (ms.getSqlCommandType().equals(SqlCommandType.SELECT)) {
+    
+                    // selectKey 为自增id查询主键（Select last_INSERT_ID()）方法，使用主库
+                    if (ms.getId().contains(SelectKeyGenerator.SELECT_KEY_SUFFIX)) {
+                        lookupKey = DynamicDataSourceHolder.DB_MASTER;
+                    } else {
+                        BoundSql boundSql = ms.getSqlSource().getBoundSql(objects[1]);
+                        String sql = boundSql.getSql().toLowerCase(Locale.CHINA).replaceAll("[\\t\\n\\r]", " ");
+    
+                        if (sql.matches(REGEX)) {
+                            lookupKey = DynamicDataSourceHolder.DB_MASTER;
+                        } else {
+                            lookupKey = DynamicDataSourceHolder.DB_SLAVE;
+                        }
+                    }
+                }
+            } else {
+                lookupKey = DynamicDataSourceHolder.DB_MASTER;
+            }
+            logger.debug("设置方法[{}] use[{}] Strategy, SqlCommanType [{}]..",
+                    ms.getId(), lookupKey, ms.getSqlCommandType().name());
+            // DynamicDataSourceHolder为一个静态变量，当发生拦截就对这个变量进行赋值，在后续Spring调用Dao层时再使用此变量
+            DynamicDataSourceHolder.setDbType(lookupKey);
+            return invocation.proceed();
+        }
+    
+        // 发生增删改查的时候，让程序进入我们的拦截逻辑
+        @Override
+        public Object plugin(Object target) {
+            if (target instanceof Executor) {
+                return Plugin.wrap(target, this);
+            } else {
+                return target;
+            }
+        }
+    
+        @Override
+        public void setProperties(Properties properties) {
+    
+        }
+    }
+    ```
+  
+    + 修改Spring-dao的配置
+    ```xml
+    <!-- 把主从连接的共通配置写在抽象对象中 -->
+    <bean id="abstractDataSource" abstract="true"
+		  class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
 
+		<!-- c3p0连接池的私有属性 -->
+		<property name="maxPoolSize" value="30" />
+		<property name="minPoolSize" value="10" />
+		<!-- 关闭连接后不自动commit -->
+		<property name="autoCommitOnClose" value="false" />
+		<!-- 获取连接超时时间 -->
+		<property name="checkoutTimeout" value="10000" />
+		<!-- 当获取连接失败重试次数 -->
+		<property name="acquireRetryAttempts" value="2" />
+	</bean>
+    
+    <!-- 主连接配置，并继承共通抽象对象 -->
+	<bean id="master" parent="abstractDataSource">
+		<!-- 配置连接池属性 -->
+		<property name="driverClass" value="${jdbc.driver}" />
+		<property name="jdbcUrl" value="${jdbc.master.url}" />
+		<property name="user" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+    <!-- 从连接配置，并继承共通抽象对象 -->
+	<bean id="slave" parent="abstractDataSource">
+		<!-- 配置连接池属性 -->
+		<property name="driverClass" value="${jdbc.driver}" />
+		<property name="jdbcUrl" value="${jdbc.slave.url}" />
+		<property name="user" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+
+	<!-- 配置动态数据源，这儿的targetDataSource就是路由数据源对应的名称, 会从DynamicDataSourceHolder中读取当前使用主、从的数据库 -->
+	<bean id="dynamicDataSource" class="com.shenxf.o2o.dao.split.DynamicDataSource">
+		<property name="targetDataSources" >
+			<map>
+				<entry value-ref="master" key="master"></entry>
+				<entry value-ref="slave" key="slave"></entry>
+			</map>
+		</property>
+	</bean>
+
+    <!-- dataSource懒加载 -->
+	<bean id="dataSource"
+		  class="org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy" >
+		<property name="targetDataSource">
+			<ref bean="dynamicDataSource" />
+		</property>
+	</bean>
+
+	<!-- 3.配置SqlSessionFactory对象 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 注入数据库连接池 -->
+		<property name="dataSource" ref="dataSource" />
+		<!-- 配置MyBaties全局配置文件:mybatis-config.xml -->
+		<property name="configLocation" value="classpath:mybatis-config.xml" />
+		<!-- 扫描entity包 使用别名 -->
+		<property name="typeAliasesPackage" value="com.shenxf.o2o.entity" />
+		<!-- 扫描sql配置文件:mapper需要的xml文件 -->
+		<property name="mapperLocations" value="classpath:mapper/*.xml" />
+	</bean>
+    ```

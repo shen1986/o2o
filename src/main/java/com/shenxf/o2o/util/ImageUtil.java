@@ -7,6 +7,7 @@ import org.springframework.web.multipart.commons.CommonsMultipartFile;
 import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
@@ -64,6 +65,25 @@ public class ImageUtil {
         int rannum = r.nextInt(89999) + 10000;
         String newTimeStr = sDateFormat.format(new Date());
         return newTimeStr + rannum;
+    }
+
+    /**
+     * storePath 是文件路径还是目录路径
+     * 如果storePath是文件路径则删除该文件
+     * 如果storePath是目录路径则删除该目录下所有的文件
+     * @param storePath
+     */
+    public static void deleteFileOrPath(String storePath) {
+        File fileOrPath = new File(PathUtil.getImgBasePath() + storePath);
+        if (fileOrPath.exists()) {
+            if (fileOrPath.isDirectory()) {
+                File files[] = fileOrPath.listFiles();
+                for (int i = 0; i< files.length; i++) {
+                    files[i].delete();
+                }
+            }
+            fileOrPath.delete();
+        }
     }
 
     public static void main(String[] args) throws IOException {
