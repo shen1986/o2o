@@ -46,7 +46,7 @@ public class ShopManagementController {
             Object currentShopObj = request.getSession().getAttribute("currentShop");
             if (currentShopObj == null) {
                 modelMap.put("redirect", true);
-                modelMap.put("url", "/o2o/shopadmin/getshoplist");
+                modelMap.put("url", "/o2o/shopadmin/shoplist");
             } else {
                 Shop currentShop = (Shop)currentShopObj;
                 modelMap.put("redirect", false);

@@ -26,16 +26,24 @@ public class ProductImgDaoTest extends BaseTest {
         productImg1.setImgDesc("测试图片1");
         productImg1.setPriority(1);
         productImg1.setCreateTime(new Date());
-        productImg1.setProductId(5L);
+        productImg1.setProductId(20L);
         ProductImg productImg2 = new ProductImg();
         productImg2.setImgAddr("图片2");
         productImg2.setPriority(1);
         productImg2.setCreateTime(new Date());
-        productImg2.setProductId(5L);
+        productImg2.setProductId(20L);
         List<ProductImg> productImgList = new ArrayList<>();
         productImgList.add(productImg1);
         productImgList.add(productImg2);
         int effectedNum = productImgDao.batchInsertProductImg(productImgList);
+        assertEquals(2, effectedNum);
+    }
+
+    @Test
+    public void testCDeleteProductImgByProductId() throws Exception {
+        // 删除新增的两条商品图片记录
+        long productId = 20;
+        int effectedNum = productImgDao.deleteProductImgsByProductId(productId);
         assertEquals(2, effectedNum);
     }
 }

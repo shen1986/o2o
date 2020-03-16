@@ -8,7 +8,9 @@ import com.shenxf.o2o.entity.ProductImg;
 import com.shenxf.o2o.enums.ProductStateEnum;
 import com.shenxf.o2o.exceptions.ProductOperationException;
 import com.shenxf.o2o.service.ProductService;
+import com.shenxf.o2o.util.FileUtil;
 import com.shenxf.o2o.util.ImageUtil;
+import com.shenxf.o2o.util.PageCalculator;
 import com.shenxf.o2o.util.PathUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,22 @@ public class ProductServiceImpl implements ProductService {
     private ProductDao productDao;
     @Autowired
     private ProductImgDao productImgDao;
+
+    @Override
+    public ProductExecution getProductList(Product productCondition, int pageIndex, int pageSize) {
+        int rowIndex = PageCalculator.calculateRowIndex(pageIndex, pageSize);
+        List<Product> productList = productDao.queryProductList(productCondition, rowIndex, pageSize);
+        int count = productDao.queryProductCount(productCondition);
+        ProductExecution pe = new ProductExecution();
+        pe.setProductList(productList);
+        pe.setCount(count);
+        return pe;
+    }
+
+    @Override
+    public Product getProductById(long productId) {
+        return productDao.queryProductById(productId);
+    }
 
     /*
      * 1. 处理缩略图，获取缩略图相对路径并赋值给product
@@ -64,6 +82,67 @@ public class ProductServiceImpl implements ProductService {
         } else {
             // 传参为空则返回空值错误
             return  new ProductExecution(ProductStateEnum.EMPTY);
+        }
+    }
+
+    @Override
+    @Transactional
+    public ProductExecution modifyProduct(Product product, CommonsMultipartFile thumbnail, List<CommonsMultipartFile> productImgs) throws RuntimeException {
+        if (product != null && product.getShop() != null && product.getShop().getShopId() != null) {
+            product.setLastEditTime(new Date());
+            if (thumbnail != null) {
+                Product tempProduct = productDao.queryProductById(product.getProductId());
+                if (tempProduct.getImgAddr() != null) {
+                    FileUtil.deleteFile(tempProduct.getImgAddr());
+                }
+                addThumbnail(product, thumbnail);
+            }
+            if (productImgs != null && productImgs.size() > 0) {
+                deleteProductImgs(product.getProductId());
+                addProductImgs(product, productImgs);
+            }
+            try {
+                int effectedNum = productDao.updateProduct(product);
+                if (effectedNum <= 0) {
+                    throw new RuntimeException("更新商品信息失败");
+                }
+                return new ProductExecution(ProductStateEnum.SUCCESS, product);
+            } catch (Exception e) {
+                throw new RuntimeException("更新商品信息失败:" + e.toString());
+            }
+        } else {
+            return new ProductExecution(ProductStateEnum.EMPTY);
+        }
+    }
+
+    private void deleteProductImgs(long productId) {
+        List<ProductImg> productImgList = productImgDao.queryProductImgList(productId);
+        for (ProductImg productImg : productImgList) {
+            FileUtil.deleteFile(productImg.getImgAddr());
+        }
+        productImgDao.deleteProductImgsByProductId(productId);
+    }
+
+    private void addProductImgs(Product product, List<CommonsMultipartFile> productImgs) {
+        String dest = FileUtil.getShopImagePath(product.getShop().getShopId());
+        List<String> imgAddrList = ImageUtil.generateNormalImgs(productImgs, dest);
+        if (imgAddrList != null && imgAddrList.size() > 0) {
+            List<ProductImg> productImgList = new ArrayList<ProductImg>();
+            for (String imgAddr : imgAddrList) {
+                ProductImg productImg = new ProductImg();
+                productImg.setImgAddr(imgAddr);
+                productImg.setProductId(product.getProductId());
+                productImg.setCreateTime(new Date());
+                productImgList.add(productImg);
+            }
+            try {
+                int effectedNum = productImgDao.batchInsertProductImg(productImgList);
+                if (effectedNum <= 0) {
+                    throw new RuntimeException("创建商品详情图片失败");
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("创建商品详情图片失败:" + e.toString());
+            }
         }
     }
 

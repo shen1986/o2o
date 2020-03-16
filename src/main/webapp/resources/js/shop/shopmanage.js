@@ -1,6 +1,6 @@
 $(function(){
     var shopId = getQueryString('shopId')
-    var shopInfoUrl = '/o2o/shopadmin/getshopmanagementinfo?shopId=' + shopId;
+        var shopInfoUrl = '/o2o/shopadmin/getshopmanagementinfo?shopId=' + shopId;
     $.getJSON(shopInfoUrl, function(data) {
         if (data.redirect) {
             window.location.href = data.url;
@@ -10,6 +10,7 @@ $(function(){
             }
             $('#shopInfo').attr('href', '/o2o/shopadmin/shopoperation?shopId=' + shopId);
             $('#productCategoryInfo').attr('href', '/o2o/shopadmin/productcategorymanage?shopId=' + shopId);
+            $('#productmanage').attr('href', '/o2o/shopadmin/productmanage?shopId=' + shopId);
         }
     });
 

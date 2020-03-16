@@ -19,9 +19,31 @@ public interface ProductDao {
                                    @Param("pageSize") int pageSize);
 
     /**
+     * 查询对应的商品总数
+     *
+     * @param productCondition
+     * @return
+     */
+    int queryProductCount(@Param("productCondition") Product productCondition);
+
+    /**
      * 插入商品
      * @param product
      * @return
      */
     int insertProduct(Product product);
+
+    /**
+     * 通过ProductId查询唯一的商品信息
+     * @param productId
+     * @return
+     */
+    Product queryProductById(long productId);
+
+    /**
+     * 更新商品信息
+     * @param product
+     * @return
+     */
+    int updateProduct(Product product);
 }

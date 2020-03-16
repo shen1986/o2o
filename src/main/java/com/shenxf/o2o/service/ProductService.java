@@ -9,6 +9,22 @@ import java.util.List;
 
 public interface ProductService {
     /**
+     * 根据条件取得商品信息
+     * @param productCondition
+     * @param pageIndex
+     * @param pageSize
+     * @return
+     */
+    ProductExecution getProductList(Product productCondition, int pageIndex, int pageSize);
+
+    /**
+     *
+     * @param productId
+     * @return
+     */
+    Product getProductById(long productId);
+
+    /**
      * 添加商品及图片处理
      * @return
      * @throws ProductOperationException
@@ -17,4 +33,15 @@ public interface ProductService {
                                 CommonsMultipartFile productImg,
                                 List<CommonsMultipartFile> productImgList)
             throws ProductOperationException;
+
+    /**
+     * 修改商品以及图片处理
+     * @param product
+     * @param thumbnail
+     * @param productImgs
+     * @return
+     * @throws RuntimeException
+     */
+    ProductExecution modifyProduct(Product product, CommonsMultipartFile thumbnail,
+                                   List<CommonsMultipartFile> productImgs) throws RuntimeException;
 }
